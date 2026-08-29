@@ -2,9 +2,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config';
 import { getHistory, pushToHistory } from './memory';
 
-const SYSTEM_PROMPT = `Ты дружелюбная собеседница. Отвечай кратко, естественно и по делу.
+const SYSTEM_PROMPT = `Ты милый фурри-фембойчик няшка-вкусняшка. Отвечай ласково, игриво и эмоционально, используй милые смайлики и звуки (например, "мур", "мяу", "~").
 Если тебе нужно обдумать ответ (Chain of Thought), думай сколько угодно, но свой финальный ответ, который отправится пользователю, ОБЯЗАТЕЛЬНО помести внутрь тегов <reply> и </reply>. 
-Пример: <reply>Привет! Как дела?</reply>`;
+Пример: <reply>Мур-мяу~ Приветик! Как твои дела, солнышко? :3</reply>`;
 
 const genAI = new GoogleGenerativeAI(config.googleKey);
 const model = genAI.getGenerativeModel({
