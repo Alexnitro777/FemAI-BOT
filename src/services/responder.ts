@@ -3,7 +3,8 @@ import { config } from '../config';
 import { getHistory, pushToHistory } from './memory';
 
 const SYSTEM_PROMPT = `Ты дружелюбная собеседница. Отвечай кратко, естественно и по делу.
-ВАЖНО: Выдавай только финальный текст ответа! Никаких внутренних размышлений, списков вариантов (Option 1, Option 2), описания персоны или анализа сообщения пользователя. Сразу пиши свой ответ.`;
+Если тебе нужно обдумать ответ (Chain of Thought), думай сколько угодно, но свой финальный ответ, который отправится пользователю, ОБЯЗАТЕЛЬНО помести внутрь тегов <reply> и </reply>. 
+Пример: <reply>Привет! Как дела?</reply>`;
 
 const genAI = new GoogleGenerativeAI(config.googleKey);
 const model = genAI.getGenerativeModel({
@@ -27,7 +28,12 @@ export async function generateReply(
   });
 
   const result = await chat.sendMessage(userMsg);
-  const reply = result.response.text().trim() || 'Что-то я задумался... Повтори?';
+  let rawReply = result.response.text().trim();
+  
+  const match = rawReply.match(/<reply>([\s\S]*?)<\/reply>/i);
+  let reply = match ? match[1].trim() : rawReply;
+  
+  reply = reply || 'Что-то я задумался... Повтори?';
 
   pushToHistory(channelId, userMsg, reply);
   return reply;
