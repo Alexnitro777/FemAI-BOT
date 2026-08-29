@@ -24,10 +24,22 @@ export async function onMessageCreate(message: Message) {
     .trim();
 
   try {
+    let typingInterval: NodeJS.Timeout | null = null;
     if ('sendTyping' in message.channel) {
-      await message.channel.sendTyping();
+      await message.channel.sendTyping().catch(() => {});
+      typingInterval = setInterval(() => {
+        if ('sendTyping' in message.channel) {
+          message.channel.sendTyping().catch(() => {});
+        }
+      }, 9000);
     }
-    let reply = await generateReply(userText, message.author.username, message.channelId);
+
+    let reply: string;
+    try {
+      reply = await generateReply(userText, message.author.username, message.channelId);
+    } finally {
+      if (typingInterval) clearInterval(typingInterval);
+    }
 
     if (!isContentSafe(reply)) reply = SAFE_FALLBACK;
     reply = sanitizeMentions(reply);
