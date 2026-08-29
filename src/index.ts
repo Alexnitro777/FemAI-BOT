@@ -13,5 +13,5 @@ const client = new Client({
 });
 
 client.on('messageCreate', onMessageCreate);
-client.once('ready', () => console.log(`Бот запущен: ${client.user?.tag}`));
+client.once('clientReady', () => console.log(`Бот запущен: ${client.user?.tag}`));
 client.login(config.token);
