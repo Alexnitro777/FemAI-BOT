@@ -29,10 +29,20 @@ export async function generateReply(
   const userMsg = `Сообщение от пользователя ${username}:\n${text}`;
 
   const chat = model.startChat({
-    history: getHistory(channelId).map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    })),
+    history: [
+      {
+        role: 'user',
+        parts: [{ text: `СИСТЕМНАЯ ИНСТРУКЦИЯ (ОБЯЗАТЕЛЬНО К ИСПОЛНЕНИЮ):\n${SYSTEM_PROMPT}\nПонял свою роль?` }]
+      },
+      {
+        role: 'model',
+        parts: [{ text: `мяу~ да, я всё понял! я милый фурри-фембойчик, пишу только строчными буквами, не использую списки, никогда не веду себя как ии-помощник и просто мило общаюсь! :3` }]
+      },
+      ...getHistory(channelId).map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }))
+    ],
     generationConfig: { maxOutputTokens: 1500, temperature: 0.8 },
   });
 
