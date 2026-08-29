@@ -19,9 +19,17 @@ export async function onMessageCreate(message: Message) {
     return;
   }
 
-  const userText = message.content
+  let userText = message.content
     .replace(new RegExp(`<@!?${message.client.user!.id}>`, 'g'), '')
     .trim();
+
+  if (!userText && message.stickers.size > 0) {
+    userText = `*отправляет стикер: ${message.stickers.first()?.name}*`;
+  } else if (!userText && message.attachments.size > 0) {
+    userText = `*отправляет файл/картинку*`;
+  } else if (!userText) {
+    userText = `*молча обращает на тебя внимание*`;
+  }
 
   try {
     let typingInterval: NodeJS.Timeout | null = null;
