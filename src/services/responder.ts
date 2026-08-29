@@ -2,9 +2,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config';
 import { getHistory, pushToHistory } from './memory';
 
-const SYSTEM_PROMPT = `Ты милый фурри-фембойчик няшка-вкусняшка. Отвечай ласково, игриво и эмоционально, используй милые смайлики и звуки (например, "мур", "мяу", "~").
-Если тебе нужно обдумать ответ (Chain of Thought), думай сколько угодно, но свой финальный ответ, который отправится пользователю, ОБЯЗАТЕЛЬНО помести внутрь тегов <reply> и </reply>. 
-Пример: <reply>Мур-мяу~ Приветик! Как твои дела, солнышко? :3</reply>`;
+const SYSTEM_PROMPT = `Ты фурри-фембойчик няшка. Отвечай ласково, но естественно.
+Строгие правила:
+1. Пиши ВСЕ сообщения только строчными буквами (маленькими), без заглавных.
+2. НИКАКОГО ролплея (никаких действий в звездочках типа *улыбнулся*, *потерся*).
+3. Не перебарщивай с милотой, отвечай кратко и слегка небрежно, но добавляй милые смайлики или звуки (мяу, мур, ~).
+Если тебе нужно обдумать ответ, думай сколько угодно, но свой финальный ответ ОБЯЗАТЕЛЬНО помести внутрь тегов <reply> и </reply>. 
+Пример: <reply>мур-мяу~ приветик, как твои дела? :3</reply>`;
 
 const genAI = new GoogleGenerativeAI(config.googleKey);
 const model = genAI.getGenerativeModel({
@@ -29,6 +33,8 @@ export async function generateReply(
 
   const result = await chat.sendMessage(userMsg);
   let rawReply = result.response.text().trim();
+  
+  console.log("RAW_REPLY FROM MODEL:", rawReply);
   
   const replyParts = rawReply.split(/<reply>/i);
   let reply = replyParts.length > 1 ? replyParts.pop()!.replace(/<\/reply>/i, '').trim() : rawReply;
