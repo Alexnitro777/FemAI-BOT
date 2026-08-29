@@ -24,13 +24,13 @@ export async function generateReply(
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     })),
-    generationConfig: { maxOutputTokens: 300, temperature: 0.8 },
+    generationConfig: { maxOutputTokens: 1500, temperature: 0.8 },
   });
 
   const result = await chat.sendMessage(userMsg);
   let rawReply = result.response.text().trim();
   
-  const match = rawReply.match(/<reply>([\s\S]*?)<\/reply>/i);
+  const match = rawReply.match(/<reply>\s*([\s\S]*?)(?:<\/reply>|$)/i);
   let reply = match ? match[1].trim() : rawReply;
   
   reply = reply || 'Что-то я задумался... Повтори?';
