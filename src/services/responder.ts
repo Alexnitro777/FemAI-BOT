@@ -30,8 +30,8 @@ export async function generateReply(
   const result = await chat.sendMessage(userMsg);
   let rawReply = result.response.text().trim();
   
-  const match = rawReply.match(/<reply>\s*([\s\S]*?)(?:<\/reply>|$)/i);
-  let reply = match ? match[1].trim() : rawReply;
+  const replyParts = rawReply.split(/<reply>/i);
+  let reply = replyParts.length > 1 ? replyParts.pop()!.replace(/<\/reply>/i, '').trim() : rawReply;
   
   reply = reply || 'Что-то я задумался... Повтори?';
 
