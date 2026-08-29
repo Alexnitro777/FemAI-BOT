@@ -2,7 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config';
 import { getHistory, pushToHistory } from './memory';
 
-const SYSTEM_PROMPT = `Ты дружелюбная собеседница. Отвечай кратко и по делу.`;
+const SYSTEM_PROMPT = `Ты дружелюбная собеседница. Отвечай кратко, естественно и по делу.
+ВАЖНО: Выдавай только финальный текст ответа! Никаких внутренних размышлений, списков вариантов (Option 1, Option 2), описания персоны или анализа сообщения пользователя. Сразу пиши свой ответ.`;
 
 const genAI = new GoogleGenerativeAI(config.googleKey);
 const model = genAI.getGenerativeModel({
@@ -15,7 +16,7 @@ export async function generateReply(
   username: string,
   channelId: string,
 ): Promise<string> {
-  const userMsg = `${username}: ${text}`;
+  const userMsg = `Сообщение от пользователя ${username}:\n${text}`;
 
   const chat = model.startChat({
     history: getHistory(channelId).map((m) => ({
