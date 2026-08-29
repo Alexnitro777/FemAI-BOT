@@ -9,5 +9,5 @@ function required(name: string): string {
 export const config = {
   token: required('DISCORD_TOKEN'),
   googleKey: required('GOOGLE_API_KEY'),
-  modelName: process.env.MODEL_NAME || 'gemini-2.0-flash',
+  modelName: process.env.MODEL_NAME || 'gemma-4-31b-it',
 };
