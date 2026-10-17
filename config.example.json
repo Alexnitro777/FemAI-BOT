@@ -1,0 +1,6 @@
+{
+  "discordToken": "YOUR_DISCORD_BOT_TOKEN_HERE",
+  "openRouterApiKey": "YOUR_OPENROUTER_API_KEY_HERE",
+  "model": "google/gemma-4-31b-it:free",
+  "channelIds": []
+}

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Production build output
+dist/
+
+# Configuration with secret tokens (NEVER COMMIT THIS)
+config.json
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

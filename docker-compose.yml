@@ -1,0 +1,10 @@
+services:
+  femai-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: femai_discord_bot
+    restart: unless-stopped
+    init: true
+    volumes:
+      - ./config.json:/app/config.json:ro
