@@ -136,7 +136,17 @@ console.log('\n5. Тест санитизации токенов и обрабо
   if (parsedWithFallbacks.success) {
     assert.deepEqual(parsedWithFallbacks.data.fallbackModels, ['model1', 'model2']);
   }
-  console.log('  ✔ ConfigSchema корректно парсит JSON-строку fallbackModels в массив');
+  // Проверка ограничения fallbackModels максимум 2 элементами (суммарно с основной моделью не более 3)
+  const parsedExcessive = ConfigSchema.safeParse({
+    discordToken: 'token123',
+    openRouterApiKey: 'sk-or-v1-mykey',
+    fallbackModels: ['m1', 'm2', 'm3', 'm4']
+  });
+  assert.ok(parsedExcessive.success);
+  if (parsedExcessive.success) {
+    assert.equal(parsedExcessive.data.fallbackModels?.length, 2);
+  }
+  console.log('  ✔ fallbackModels автоматически ограничивается максимум 2 моделями для OpenRouter (3 items or fewer)');
 }
 
 console.log('\n🎉 ВСЕ ТЕСТЫ БЕЗОПАСНОСТИ И МОДУЛЕЙ УСПЕШНО ПРОЙДЕНЫ!');

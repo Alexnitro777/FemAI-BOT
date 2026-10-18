@@ -50,7 +50,8 @@ export async function generateChatResponse(
     ? config.fallbackModels
     : (config.model.includes(':free') ? DEFAULT_FREE_FALLBACK_MODELS.filter((m) => m !== config.model) : []);
 
-  const modelsToTry = [config.model, ...fallbackList.filter((m) => m !== config.model)];
+  // OpenRouter строго ограничивает массив 'models' максимум 3 элементами
+  const modelsToTry = [config.model, ...fallbackList.filter((m) => m !== config.model)].slice(0, 3);
 
   const payload: Record<string, unknown> = {
     messages,

@@ -10,9 +10,7 @@ export function cleanConfigString(val: unknown, fallback = ''): string {
 
 export const DEFAULT_FREE_FALLBACK_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemma-2-9b-it:free',
-  'qwen/qwen-2.5-72b-instruct:free',
-  'mistralai/mistral-7b-instruct:free'
+  'google/gemma-2-9b-it:free'
 ];
 
 export const ConfigSchema = z.object({
@@ -23,16 +21,16 @@ export const ConfigSchema = z.object({
     if (typeof v === 'string') {
       try {
         const parsed = JSON.parse(v);
-        if (Array.isArray(parsed)) return parsed.map((m) => cleanConfigString(m)).filter(Boolean);
+        if (Array.isArray(parsed)) return parsed.map((m) => cleanConfigString(m)).filter(Boolean).slice(0, 2);
       } catch {
-        return v.split(',').map((m) => cleanConfigString(m)).filter(Boolean);
+        return v.split(',').map((m) => cleanConfigString(m)).filter(Boolean).slice(0, 2);
       }
     }
     if (Array.isArray(v)) {
-      return v.map((m) => cleanConfigString(m)).filter(Boolean);
+      return v.map((m) => cleanConfigString(m)).filter(Boolean).slice(0, 2);
     }
     return undefined;
-  }, z.array(z.string()).optional()),
+  }, z.array(z.string()).max(2, 'OpenRouter поддерживает максимум 2 резервные модели (всего до 3)').optional()),
   channelIds: z.array(z.string()).default([])
 });
 
