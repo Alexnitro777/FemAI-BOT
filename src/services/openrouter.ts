@@ -1,10 +1,11 @@
-import { config } from '../config/config.js';
+import { config, DEFAULT_FREE_FALLBACK_MODELS } from '../config/config.js';
 import { FEMBOY_SYSTEM_PROMPT } from '../config/persona.js';
 import { type ChatMessage } from './memory.js';
 import { logger } from '../utils/logger.js';
 
 interface OpenRouterResponse {
   id?: string;
+  model?: string;
   choices?: Array<{
     message?: {
       role?: string;
@@ -15,6 +16,11 @@ interface OpenRouterResponse {
   error?: {
     message?: string;
     code?: number;
+    metadata?: {
+      raw?: string;
+      provider_name?: string;
+      remedy_hint?: string;
+    };
   };
 }
 
@@ -39,19 +45,33 @@ export async function generateChatResponse(
     { role: 'user', content: userPrompt }
   ];
 
-  const payload = {
-    model: config.model,
+  // Формируем список моделей с фолбэками
+  const fallbackList = config.fallbackModels !== undefined
+    ? config.fallbackModels
+    : (config.model.includes(':free') ? DEFAULT_FREE_FALLBACK_MODELS.filter((m) => m !== config.model) : []);
+
+  const modelsToTry = [config.model, ...fallbackList.filter((m) => m !== config.model)];
+
+  const payload: Record<string, unknown> = {
     messages,
     temperature: 0.8,
     max_tokens: 1024
   };
 
+  if (modelsToTry.length > 1) {
+    payload.models = modelsToTry;
+  } else {
+    payload.model = config.model;
+  }
+
   const maxRetries = 2;
   let lastError: Error | null = null;
+  let lastStatus: number | undefined;
+  let nextRetryDelayMs = 0;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (attempt > 0) {
-      const delayMs = attempt * 2000;
+      const delayMs = nextRetryDelayMs > 0 ? nextRetryDelayMs : attempt * 2500;
       logger.warn(`Повторная попытка запроса к OpenRouter (${attempt}/${maxRetries}) через ${delayMs}мс...`);
       await new Promise((res) => setTimeout(res, delayMs));
     }
@@ -78,6 +98,17 @@ export async function generateChatResponse(
         const errorText = await response.text();
         logger.error(`Ошибка OpenRouter API [${response.status}]: ${errorText}`);
 
+        let detailMessage = `OpenRouter HTTP ${response.status}`;
+        try {
+          const errJson = JSON.parse(errorText);
+          const rawMsg = errJson?.error?.metadata?.raw || errJson?.error?.message;
+          if (rawMsg) {
+            detailMessage = `OpenRouter HTTP ${response.status}: ${rawMsg}`;
+          }
+        } catch {
+          // Игнорируем ошибку парсинга JSON
+        }
+
         if (response.status === 401) {
           logger.error('Ошибка авторизации OpenRouter (401 Unauthorized / User not found). Вероятные причины: неверный или отозванный API-ключ, удалённый аккаунт, либо ключ скопирован с ошибкой.');
           throw new OpenRouterError('Неверный или отозванный API-ключ OpenRouter (401 Unauthorized)', 401, true);
@@ -88,20 +119,34 @@ export async function generateChatResponse(
           throw new OpenRouterError(`Модель "${config.model}" не найдена на OpenRouter (404)`, 404);
         }
 
-        // If rate limited or server overloaded, retry
+        // Если сработал рейт-лимит (429) или ошибка сервера (5xx), повторяем попытку
         if (response.status === 429 || response.status >= 500) {
-          lastError = new Error(`OpenRouter HTTP ${response.status}`);
+          lastStatus = response.status;
+          lastError = new OpenRouterError(detailMessage, response.status);
+
+          // Проверяем заголовок Retry-After
+          const retryAfterHeader = response.headers.get('retry-after');
+          const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+          if (!isNaN(retryAfterSec) && retryAfterSec > 0 && retryAfterSec <= 15) {
+            nextRetryDelayMs = retryAfterSec * 1000;
+          } else {
+            nextRetryDelayMs = (attempt + 1) * 3000;
+          }
           continue;
         }
 
-        throw new OpenRouterError(`OpenRouter вернул HTTP ${response.status}: ${errorText}`, response.status);
+        throw new OpenRouterError(detailMessage, response.status);
       }
 
       const data = (await response.json()) as OpenRouterResponse;
 
       if (data.error) {
         logger.error('OpenRouter вернул ошибку в ответе:', data.error.message);
-        throw new OpenRouterError(data.error.message ?? 'Неизвестная ошибка OpenRouter');
+        throw new OpenRouterError(data.error.message ?? 'Неизвестная ошибка OpenRouter', data.error.code);
+      }
+
+      if (data.model && data.model !== config.model) {
+        logger.info(`Ответ получен от резервной модели OpenRouter: ${data.model} (основная: ${config.model})`);
       }
 
       const replyContent = data.choices?.[0]?.message?.content?.trim();
@@ -118,7 +163,8 @@ export async function generateChatResponse(
       }
       if (err instanceof Error && err.name === 'AbortError') {
         logger.error('Таймаут запроса к OpenRouter (превышено 45 сек)');
-        lastError = new Error('Request Timeout');
+        lastError = new OpenRouterError('Request Timeout (превышено 45 сек)', 408);
+        lastStatus = 408;
       } else {
         logger.error('Исключение при запросе к OpenRouter:', err);
         lastError = err instanceof Error ? err : new Error(String(err));
@@ -127,5 +173,8 @@ export async function generateChatResponse(
   }
 
   logger.error('Все попытки запроса к OpenRouter исчерпаны:', lastError);
-  throw new OpenRouterError('Все попытки запроса к OpenRouter исчерпаны');
+  throw new OpenRouterError(
+    lastError instanceof OpenRouterError ? lastError.message : 'Все попытки запроса к OpenRouter исчерпаны',
+    lastStatus
+  );
 }

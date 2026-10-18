@@ -151,9 +151,9 @@ export async function onMessageCreate(client: Client<true>, message: Message) {
       }
 
       if (err.status === 429) {
-        logger.warn('Превышен лимит запросов OpenRouter (429 Rate Limit).');
+        logger.warn(`Превышен лимит запросов OpenRouter (429 Rate Limit): ${err.message}`);
         await message.reply({
-          content: 'Ой, сервер модели сейчас слишком загружен (Rate Limit)! Давай подождём минутку и поболтаем снова! (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄) 💕',
+          content: 'Ой, сервер модели сейчас временно перегружен или превысил лимит запросов (Rate Limit 429)! Пожалуйста, подожди полминутки и напиши мне снова ~nya! (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄) 💕',
           allowedMentions: SAFE_ALLOWED_MENTIONS
         });
         return;

@@ -8,10 +8,31 @@ export function cleanConfigString(val: unknown, fallback = ''): string {
   return val.trim().replace(/^["']|["']$/g, '').trim();
 }
 
+export const DEFAULT_FREE_FALLBACK_MODELS = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'google/gemma-2-9b-it:free',
+  'qwen/qwen-2.5-72b-instruct:free',
+  'mistralai/mistral-7b-instruct:free'
+];
+
 export const ConfigSchema = z.object({
   discordToken: z.preprocess((v) => cleanConfigString(v), z.string().min(1, 'discordToken не может быть пустым')),
   openRouterApiKey: z.preprocess((v) => cleanConfigString(v), z.string().min(1, 'openRouterApiKey не может быть пустым')),
   model: z.preprocess((v) => cleanConfigString(v, 'google/gemma-2-9b-it:free'), z.string().min(1).default('google/gemma-2-9b-it:free')),
+  fallbackModels: z.preprocess((v) => {
+    if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v);
+        if (Array.isArray(parsed)) return parsed.map((m) => cleanConfigString(m)).filter(Boolean);
+      } catch {
+        return v.split(',').map((m) => cleanConfigString(m)).filter(Boolean);
+      }
+    }
+    if (Array.isArray(v)) {
+      return v.map((m) => cleanConfigString(m)).filter(Boolean);
+    }
+    return undefined;
+  }, z.array(z.string()).optional()),
   channelIds: z.array(z.string()).default([])
 });
 
@@ -51,6 +72,13 @@ function loadConfig(): BotConfig {
   if (process.env.DISCORD_TOKEN) rawData.discordToken = process.env.DISCORD_TOKEN;
   if (process.env.OPENROUTER_API_KEY) rawData.openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (process.env.MODEL) rawData.model = process.env.MODEL;
+  if (process.env.FALLBACK_MODELS) {
+    try {
+      rawData.fallbackModels = JSON.parse(process.env.FALLBACK_MODELS);
+    } catch {
+      rawData.fallbackModels = process.env.FALLBACK_MODELS.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
   if (process.env.CHANNEL_IDS) {
     try {
       rawData.channelIds = JSON.parse(process.env.CHANNEL_IDS);

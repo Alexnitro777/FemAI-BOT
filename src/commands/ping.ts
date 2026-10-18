@@ -5,11 +5,12 @@ export const data = new SlashCommandBuilder()
   .setDescription('Проверить отклик и состояние бота');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const sent = await interaction.reply({
+  const response = await interaction.reply({
     content: 'Ловлю мячик... ~nya! 🐾',
-    fetchReply: true
+    withResponse: true
   });
 
+  const sent = response.resource?.message ?? (await interaction.fetchReply());
   const latency = sent.createdTimestamp - interaction.createdTimestamp;
   const apiLatency = Math.round(interaction.client.ws.ping);
 

@@ -114,12 +114,29 @@ console.log('\n5. Тест санитизации токенов и обрабо
   }
   console.log('  ✔ ConfigSchema автоматически санитизирует токены и устанавливает валидную модель по умолчанию');
 
-  // Проверка OpenRouterError (флаг 401 авторизации)
+  // Проверка OpenRouterError (флаг 401 авторизации и статус 429)
   const authErr = new OpenRouterError('401 Unauthorized', 401, true);
   assert.equal(authErr.isAuth, true);
   assert.equal(authErr.status, 401);
   assert.equal(authErr.name, 'OpenRouterError');
   console.log('  ✔ OpenRouterError корректно идентифицирует ошибку авторизации 401 (User not found)');
+
+  const rateLimitErr = new OpenRouterError('OpenRouter HTTP 429: rate limited', 429);
+  assert.equal(rateLimitErr.status, 429);
+  assert.equal(rateLimitErr.message.includes('429'), true);
+  console.log('  ✔ OpenRouterError корректно сохраняет статус 429 и подробное сообщение об ошибке');
+
+  // Проверка парсинга fallbackModels
+  const parsedWithFallbacks = ConfigSchema.safeParse({
+    discordToken: 'token123',
+    openRouterApiKey: 'sk-or-v1-mykey',
+    fallbackModels: '["model1", "model2"]'
+  });
+  assert.ok(parsedWithFallbacks.success);
+  if (parsedWithFallbacks.success) {
+    assert.deepEqual(parsedWithFallbacks.data.fallbackModels, ['model1', 'model2']);
+  }
+  console.log('  ✔ ConfigSchema корректно парсит JSON-строку fallbackModels в массив');
 }
 
 console.log('\n🎉 ВСЕ ТЕСТЫ БЕЗОПАСНОСТИ И МОДУЛЕЙ УСПЕШНО ПРОЙДЕНЫ!');
