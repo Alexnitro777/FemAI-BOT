@@ -1,6 +1,6 @@
 # 🌸 FemAI Discord Bot — Няшный Собеседник-Фембойчик
 
-Уютный, живой Discord-бот собеседник на **TypeScript** (`discord.js` v14), работающий на базе бесплатной нейросетевой модели **`google/gemma-4-31b-it:free`** через [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it:free).
+Уютный, живой Discord-бот собеседник на **TypeScript** (`discord.js` v14), работающий на базе бесплатной нейросетевой модели **`google/gemma-2-9b-it:free`** через [OpenRouter](https://openrouter.ai/google/gemma-2-9b-it:free).
 
 Бот спроектирован **не как безликий ассистент**, а как **милый друг и приятный компаньон (няшный фембойчик)**: с ним можно болтать по душам, делиться новостями, обсуждать игры, аниме, жизнь, шутить или просить совета.
 
@@ -47,7 +47,7 @@
 ### 2. Получение ключа OpenRouter API
 1. Зарегистрируйтесь на сайте [OpenRouter.ai](https://openrouter.ai/).
 2. Перейдите в раздел [Keys](https://openrouter.ai/keys) и нажмите **Create Key**.
-3. Модель `google/gemma-4-31b-it:free` полностью бесплатна для использования.
+3. Модель `google/gemma-2-9b-it:free` полностью бесплатна для использования.
 
 ---
 
@@ -64,7 +64,7 @@ cp config.example.json config.json
 {
   "discordToken": "ВАШ_ТОКЕН_БОТА_ДИСКОРД",
   "openRouterApiKey": "ВАШ_КЛЮЧ_OPENROUTER_API",
-  "model": "google/gemma-4-31b-it:free",
+  "model": "google/gemma-2-9b-it:free",
   "channelIds": []
 }
 ```
@@ -72,7 +72,7 @@ cp config.example.json config.json
 #### Параметры:
 - `discordToken` — токен бота из Discord Developer Portal.
 - `openRouterApiKey` — API-ключ OpenRouter.
-- `model` — название модели нейросети (по умолчанию `google/gemma-4-31b-it:free`).
+- `model` — название модели нейросети (по умолчанию `google/gemma-2-9b-it:free`).
 - `channelIds` — массив ID каналов (например `["123456789012345678"]`), в которых бот будет отвечать на **все** сообщения без необходимости тегать его. Если оставить пустым `[]`, бот отвечает только при прямом упоминании (`@Бот`) или при ответе (Reply) на его сообщения.
 
 > [!IMPORTANT]

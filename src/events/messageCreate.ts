@@ -7,7 +7,7 @@ import {
   rateLimiter
 } from '../services/security.js';
 import { memoryManager } from '../services/memory.js';
-import { generateChatResponse } from '../services/openrouter.js';
+import { generateChatResponse, OpenRouterError } from '../services/openrouter.js';
 import { splitDiscordMessage } from '../utils/discordSplitter.js';
 import { logger } from '../utils/logger.js';
 
@@ -131,9 +131,38 @@ export async function onMessageCreate(client: Client<true>, message: Message) {
       }
     }
   } catch (err) {
+    if (err instanceof OpenRouterError) {
+      if (err.isAuth) {
+        logger.error('Критическая ошибка: неверный или недействительный API-ключ OpenRouter (401 Unauthorized / User not found).');
+        await message.reply({
+          content: 'Ой-ой... Кажется, мой API-ключ OpenRouter недействителен или не найден (Ошибка 401: User not found). Пожалуйста, проверь правильность ключа в config.json! (｡•́︿•̀｡)',
+          allowedMentions: SAFE_ALLOWED_MENTIONS
+        });
+        return;
+      }
+
+      if (err.status === 404) {
+        logger.error(`Ошибка OpenRouter: указанная модель "${config.model}" не найдена (404 Not Found).`);
+        await message.reply({
+          content: `Ой, я не могу найти модель "${config.model}" на OpenRouter (Ошибка 404). Проверь название модели в config.json ~nya (｡•́︿•̀｡)`,
+          allowedMentions: SAFE_ALLOWED_MENTIONS
+        });
+        return;
+      }
+
+      if (err.status === 429) {
+        logger.warn('Превышен лимит запросов OpenRouter (429 Rate Limit).');
+        await message.reply({
+          content: 'Ой, сервер модели сейчас слишком загружен (Rate Limit)! Давай подождём минутку и поболтаем снова! (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄) 💕',
+          allowedMentions: SAFE_ALLOWED_MENTIONS
+        });
+        return;
+      }
+    }
+
     logger.error('Непредвиденная ошибка при обработке сообщения:', err);
     await message.reply({
-      content: 'Ой, что-то пошло не так при генерации ответа... Давай попробуем ещё разочек? (｡•́︿•̀｡)',
+      content: 'Ой, что-то сервер OpenRouter сердится... Попробуй спросить меня чуть-чуть попозже, ладно? (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)',
       allowedMentions: SAFE_ALLOWED_MENTIONS
     });
   } finally {

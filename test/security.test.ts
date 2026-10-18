@@ -87,4 +87,39 @@ console.log('\n4. Тест Memory Manager (история и скользяще�
   console.log('  ✔ Очистка сессии (команда /reset) успешно сбрасывает память');
 }
 
+// 5. Тесты санитизации конфигурации и OpenRouterError
+console.log('\n5. Тест санитизации токенов и обработки OpenRouterError:');
+{
+  process.env.NODE_ENV = 'test';
+  const { cleanConfigString, ConfigSchema } = await import('../src/config/config.js');
+  const { OpenRouterError } = await import('../src/services/openrouter.js');
+
+  // Проверка удаления кавычек и пробелов
+  assert.equal(cleanConfigString('  sk-or-v1-abcdef123  '), 'sk-or-v1-abcdef123');
+  assert.equal(cleanConfigString('"sk-or-v1-abcdef123"'), 'sk-or-v1-abcdef123');
+  assert.equal(cleanConfigString("'sk-or-v1-abcdef123'"), 'sk-or-v1-abcdef123');
+  assert.equal(cleanConfigString('  "sk-or-v1-abcdef123"  '), 'sk-or-v1-abcdef123');
+  console.log('  ✔ cleanConfigString успешно удаляет внешние кавычки и лишние пробелы');
+
+  // Проверка схемы с неряшливым вводом
+  const parsed = ConfigSchema.safeParse({
+    discordToken: '  "my_discord_token"  ',
+    openRouterApiKey: '  "sk-or-v1-mykey"  '
+  });
+  assert.ok(parsed.success);
+  if (parsed.success) {
+    assert.equal(parsed.data.discordToken, 'my_discord_token');
+    assert.equal(parsed.data.openRouterApiKey, 'sk-or-v1-mykey');
+    assert.equal(parsed.data.model, 'google/gemma-2-9b-it:free');
+  }
+  console.log('  ✔ ConfigSchema автоматически санитизирует токены и устанавливает валидную модель по умолчанию');
+
+  // Проверка OpenRouterError (флаг 401 авторизации)
+  const authErr = new OpenRouterError('401 Unauthorized', 401, true);
+  assert.equal(authErr.isAuth, true);
+  assert.equal(authErr.status, 401);
+  assert.equal(authErr.name, 'OpenRouterError');
+  console.log('  ✔ OpenRouterError корректно идентифицирует ошибку авторизации 401 (User not found)');
+}
+
 console.log('\n🎉 ВСЕ ТЕСТЫ БЕЗОПАСНОСТИ И МОДУЛЕЙ УСПЕШНО ПРОЙДЕНЫ!');

@@ -2,6 +2,7 @@ import {
   Client,
   GatewayIntentBits,
   Partials,
+  Events,
   type Interaction
 } from 'discord.js';
 import { config } from './config/config.js';
@@ -25,7 +26,7 @@ const client = new Client({
 });
 
 // Обработка готовности бота
-client.once('ready', async (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
   await onReady(readyClient);
 });
 

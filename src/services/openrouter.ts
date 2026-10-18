@@ -18,6 +18,17 @@ interface OpenRouterResponse {
   };
 }
 
+export class OpenRouterError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly isAuth: boolean = false
+  ) {
+    super(message);
+    this.name = 'OpenRouterError';
+  }
+}
+
 export async function generateChatResponse(
   history: ChatMessage[],
   userPrompt: string
@@ -67,20 +78,30 @@ export async function generateChatResponse(
         const errorText = await response.text();
         logger.error(`Ошибка OpenRouter API [${response.status}]: ${errorText}`);
 
+        if (response.status === 401) {
+          logger.error('Ошибка авторизации OpenRouter (401 Unauthorized / User not found). Вероятные причины: неверный или отозванный API-ключ, удалённый аккаунт, либо ключ скопирован с ошибкой.');
+          throw new OpenRouterError('Неверный или отозванный API-ключ OpenRouter (401 Unauthorized)', 401, true);
+        }
+
+        if (response.status === 404) {
+          logger.error(`Модель "${config.model}" не найдена на OpenRouter (404 Not Found). Проверьте название модели в config.json.`);
+          throw new OpenRouterError(`Модель "${config.model}" не найдена на OpenRouter (404)`, 404);
+        }
+
         // If rate limited or server overloaded, retry
         if (response.status === 429 || response.status >= 500) {
           lastError = new Error(`OpenRouter HTTP ${response.status}`);
           continue;
         }
 
-        return 'Ой, что-то сервер OpenRouter сердится... Попробуй спросить меня чуть-чуть попозже, ладно? (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)';
+        throw new OpenRouterError(`OpenRouter вернул HTTP ${response.status}: ${errorText}`, response.status);
       }
 
       const data = (await response.json()) as OpenRouterResponse;
 
       if (data.error) {
         logger.error('OpenRouter вернул ошибку в ответе:', data.error.message);
-        return 'Ой, у меня в мыслях что-то перепуталось... Давай попробуем ещё разок? ~nya (｡•́︿•̀｡)';
+        throw new OpenRouterError(data.error.message ?? 'Неизвестная ошибка OpenRouter');
       }
 
       const replyContent = data.choices?.[0]?.message?.content?.trim();
@@ -92,6 +113,9 @@ export async function generateChatResponse(
       return replyContent;
     } catch (err: unknown) {
       clearTimeout(timeout);
+      if (err instanceof OpenRouterError) {
+        throw err;
+      }
       if (err instanceof Error && err.name === 'AbortError') {
         logger.error('Таймаут запроса к OpenRouter (превышено 45 сек)');
         lastError = new Error('Request Timeout');
@@ -103,5 +127,5 @@ export async function generateChatResponse(
   }
 
   logger.error('Все попытки запроса к OpenRouter исчерпаны:', lastError);
-  return 'Ой-ой... Кажется, сейчас бесплатный сервер модели перегружен или недоступен. Давай подождём минутку и поболтаем снова! (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄) 💕';
+  throw new OpenRouterError('Все попытки запроса к OpenRouter исчерпаны');
 }
